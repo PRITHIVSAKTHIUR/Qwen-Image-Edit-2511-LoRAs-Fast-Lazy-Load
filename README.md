@@ -20,6 +20,10 @@
 - **Examples**: 7 curated multi/single-image scenarios.
 - **Queueing**: Up to 30 concurrent jobs.
 
+<img width="1390" height="787" alt="Screenshot 2026-01-02 at 10-59-26 Qwen-Image-Edit-2511-LoRAs-Fast - a Hugging Face Space by prithivMLmods" src="https://github.com/user-attachments/assets/704e07e5-8928-464e-b50d-906d0c156f88" />
+
+<img width="1422" height="791" alt="Screenshot 2026-01-02 at 10-59-59 Qwen-Image-Edit-2511-LoRAs-Fast - a Hugging Face Space by prithivMLmods" src="https://github.com/user-attachments/assets/1e001022-2c13-4d11-a53f-79beca46ffe9" />
+
 **Note**: This is an experimental Space for the newer Qwen-Image-Edit-2511 model. For stable performance, consider the [2509 version](https://huggingface.co/spaces/prithivMLmods/Qwen-Image-Edit-2509-LoRAs-Fast).
 
 ## Prerequisites
