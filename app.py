@@ -156,6 +156,11 @@ ADAPTER_SPECS = {
         "weights": "qwen-image-edit-2511-multiple-angles-lora.safetensors",
         "adapter_name": "fal-multiple-angles"
     },
+    "Polaroid-Photo": {
+        "repo": "prithivMLmods/Qwen-Image-Edit-2511-Polaroid-Photo",
+        "weights": "Qwen-Image-Edit-2511-Polaroid-Photo.safetensors",
+        "adapter_name": "polaroid-photo"
+    },
 }
 
 LOADED_ADAPTERS = set()
@@ -343,6 +348,7 @@ with gr.Blocks() as demo:
                 [["examples/B.jpg"], "Transform into anime.", "Photo-to-Anime"],
                 [["examples/A.jpeg"], "Rotate the camera 45 degrees to the right.", "Multiple-Angles"],
                 [["examples/U.jpg"], "Upscale this picture to 4K resolution.", "Upscaler"],
+                [["examples/PP1.jpg"], "cinematic polaroid with soft grain subtle vignette gentle lighting white frame handwritten photographed by hf‪‪‬ preserving realistic texture and details", "Polaroid-Photo"],
                 [["examples/Z1.jpg"], "Front-right quarter view.", "Fal-Multiple-Angles"],
                 [["examples/Z2.jpg"], "Back-left quarter view.", "Fal-Multiple-Angles"],
                 [["examples/Z3.jpg"], "Left side view, Balanced, standard.", "Fal-Multiple-Angles"],
