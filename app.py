@@ -360,7 +360,7 @@ with gr.Blocks() as demo:
                 
                 prompt = gr.Text(
                     label="Edit Prompt",
-                    max_lines=1,
+                    #max_lines=1,
                     show_label=True,
                     placeholder="e.g., transform into anime..",
                 )
