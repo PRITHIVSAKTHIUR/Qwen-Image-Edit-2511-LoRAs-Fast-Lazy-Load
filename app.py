@@ -195,6 +195,11 @@ ADAPTER_SPECS = {
        "weights": "QIE-2511-AnyLight_.safetensors",
        "adapter_name": "any-light"
    }, 
+    "Studio-DeLight": {
+       "repo": "prithivMLmods/QIE-2511-Studio-DeLight",
+       "weights": "QIE-2511-Studio-DeLight-5000.safetensors",
+       "adapter_name": "studio-delight"
+   }, 
 }
 
 LOADED_ADAPTERS = set()
@@ -386,6 +391,7 @@ with gr.Blocks() as demo:
                 [["examples/L1.jpg", "examples/L2.jpg"], "Apply the lighting from image 2 to image 1.", "Any-light"],
                 [["examples/PP1.jpg"], "cinematic polaroid with soft grain subtle vignette gentle lighting white frame handwritten photographed by hf‪‪‬ preserving realistic texture and details", "Polaroid-Photo"],
                 [["examples/Z1.jpg"], "Front-right quarter view.", "Fal-Multiple-Angles"],
+                [["examples/SL.jpg"], "Neutral uniform lighting Preserve identity and composition.", "Studio-DeLight"],
                 [["examples/PI.jpg"], "Transform it into Pixar-inspired 3D.", "Pixar-Inspired-3D"],
                 [["examples/MT.jpg"], "Paint with manga tone.", "Manga-Tone"],
                 [["examples/NCB.jpg"], "Transform into a noir comic book style.", "Noir-Comic-Book"],
