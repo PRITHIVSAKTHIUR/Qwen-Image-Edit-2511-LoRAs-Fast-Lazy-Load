@@ -56,7 +56,7 @@
     kernels
     spaces
     hf_xet
-    gradio
+    gradio==6.17.3
     torch==2.11.0
     numpy
     av
