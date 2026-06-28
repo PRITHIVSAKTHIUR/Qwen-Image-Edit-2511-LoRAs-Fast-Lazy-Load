@@ -21,6 +21,9 @@ dependencies = [
     "transformers==4.57.3",
 ]
 
+[project.optional-dependencies]
+desktop = ["pywebview>=5"]
+
 [tool.uv.sources]
 accelerate = { git = "https://github.com/huggingface/accelerate.git" }
 diffusers = { git = "https://github.com/huggingface/diffusers.git" }

@@ -1,5 +1,6 @@
 import os
 import gc
+import sys
 import gradio as gr
 import numpy as np
 import spaces
@@ -9,6 +10,7 @@ import base64
 import json
 import html as html_lib
 from io import BytesIO
+from pathlib import Path
 from PIL import Image
 
 MAX_SEED = np.iinfo(np.int32).max
@@ -27,12 +29,30 @@ if torch.cuda.is_available():
 
 print("Using device:", device)
 
+# ── Detect packaged environment ──────────────────────────────────────────
+APP_ROOT = Path(__file__).resolve().parent
+IS_PACKAGED = (APP_ROOT / "uv.exe").exists()
+if IS_PACKAGED:
+    print("Packaged mode detected (uv.exe present in app directory).")
+    # Ensure the app root is in path so 'qwenimage' package resolves
+    if str(APP_ROOT) not in sys.path:
+        sys.path.insert(0, str(APP_ROOT))
+    # Use a stable location for HuggingFace cache (avoid long paths / spaces)
+    hf_cache = APP_ROOT / ".hf_cache"
+    hf_cache.mkdir(exist_ok=True)
+    os.environ.setdefault("HF_HOME", str(hf_cache))
+    os.environ.setdefault("HUGGINGFACE_HUB_CACHE", str(hf_cache / "hub"))
+    os.environ.setdefault("TRANSFORMERS_CACHE", str(hf_cache / "hub"))
+    print(f"HF cache dir: {hf_cache}")
+else:
+    print("Development mode (no uv.exe found).")
+
 from diffusers import FlowMatchEulerDiscreteScheduler
 from qwenimage.pipeline_qwenimage_edit_plus import QwenImageEditPlusPipeline
 from qwenimage.transformer_qwenimage import QwenImageTransformer2DModel
 from qwenimage.qwen_fa3_processor import QwenDoubleStreamAttnProcessorFA3
 
-dtype = torch.bfloat16
+dtype = torch.float16 if torch.cuda.get_device_capability()[0] < 8 else torch.bfloat16
 
 pipe = QwenImageEditPlusPipeline.from_pretrained(
     "Qwen/Qwen-Image-Edit-2511",
@@ -44,11 +64,16 @@ pipe = QwenImageEditPlusPipeline.from_pretrained(
     torch_dtype=dtype,
 ).to(device)
 
+pipe.enable_model_cpu_offload()
+pipe.enable_attention_slicing()
+if torch.cuda.get_device_capability()[0] < 7:
+    pipe.vae.enable_tiling()
+
 try:
     pipe.transformer.set_attn_processor(QwenDoubleStreamAttnProcessorFA3())
-    print("Flash Attention 3 Processor set successfully.")
+    print("Attention processor set (FA3 or SDPA fallback).")
 except Exception as e:
-    print(f"Warning: Could not set FA3 processor: {e}")
+    print(f"Warning: Could not set attention processor: {e}")
 
 ADAPTER_SPECS = {
     "Multiple-Angles": {
@@ -274,15 +299,17 @@ def b64_to_pil_list(b64_json_str):
     return pil_images
 
 
+MAX_EDGE = int(os.environ.get("QWEN_MAX_EDGE", "768"))
+
 def update_dimensions_on_upload(image):
     if image is None:
-        return 1024, 1024
+        return MAX_EDGE, MAX_EDGE
     w, h = image.size
     if w > h:
-        nw = 1024
+        nw = MAX_EDGE
         nh = int(nw * h / w)
     else:
-        nh = 1024
+        nh = MAX_EDGE
         nw = int(nh * w / h)
     return (nw // 8) * 8, (nh // 8) * 8
 
@@ -1627,10 +1654,65 @@ with gr.Blocks() as demo:
     )
 
 if __name__ == "__main__":
-    demo.queue(max_size=50).launch(
-        css=css,
-        mcp_server=True,
-        ssr_mode=False,
-        show_error=True,
-        allowed_paths=["examples"],
-    )
+    import argparse
+    parser = argparse.ArgumentParser(description="Qwen-Image-Edit")
+    parser.add_argument("--desktop", action="store_true", help="Launch as native desktop window (requires pywebview)")
+    args = parser.parse_args()
+
+    if args.desktop:
+        try:
+            import webview
+        except ImportError:
+            print("pywebview is required for desktop mode.")
+            print("Install it with: uv add pywebview")
+            sys.exit(1)
+
+        import threading
+        import urllib.request
+        import time
+
+        HOST = "127.0.0.1"
+        PORT = 7860
+
+        def start_server():
+            demo.queue(max_size=50).launch(
+                server_name=HOST,
+                server_port=PORT,
+                css=css,
+                mcp_server=True,
+                ssr_mode=False,
+                show_error=True,
+                allowed_paths=["examples"],
+                prevent_thread_lock=True,
+            )
+
+        t = threading.Thread(target=start_server, daemon=True)
+        t.start()
+
+        url = f"http://{HOST}:{PORT}"
+        print(f"Waiting for server at {url}...")
+        while True:
+            try:
+                urllib.request.urlopen(url, timeout=2)
+                break
+            except Exception:
+                time.sleep(0.5)
+
+        print("Server ready. Opening desktop window...")
+        webview.create_window(
+            title="Qwen-Image-Edit",
+            url=url,
+            width=1440,
+            height=960,
+            min_size=(960, 680),
+            resizable=True,
+            text_select=True,
+        )
+    else:
+        demo.queue(max_size=50).launch(
+            css=css,
+            mcp_server=True,
+            ssr_mode=False,
+            show_error=True,
+            allowed_paths=["examples"],
+        )
