@@ -1,94 +1,94 @@
-# **[Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load](https://huggingface.co/spaces/prithivMLmods/Qwen-Image-Edit-2511-LoRAs-Fast)**
+# **Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load**
 
-> A Gradio-based demonstration for the Qwen/Qwen-Image-Edit-2511 model with lazy-loaded LoRA adapters for advanced single- and multi-image editing. Supports 7+ specialized LoRAs including photo-to-anime, multi-angle camera control, pose transfer (Any-Pose), upscaling, style transfer, light migration, and manga tone. Features fast inference (4 steps default) with Flash Attention 3 and dynamic adapter loading to optimize memory.
+Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load is an experimental, high-performance image editing and style-transfer platform built upon the `Qwen/Qwen-Image-Edit-2511` base pipeline and an optimized transformer backbone (`prithivMLmods/Qwen-Image-Edit-Rapid-AIO-V19`). The suite implements Flash Attention 3 (`QwenDoubleStreamAttnProcessorFA3`) to achieve low VRAM consumption and rapid 4-step image manipulation.
 
-<img width="1920" height="1684" alt="image" src="https://github.com/user-attachments/assets/5a38b47d-8479-4602-ab7f-7a4d2479e503" />
+Featuring a **Lazy Loading** architecture for LoRA adapters, the application dynamically fetches and fuses adapters on demand—including Multiple Angles, Photo-to-Anime, Light Migration, Upscaler, and Pixar 3D—only when requested. The backend is coupled with a custom dark-themed Gradio web application with drag-and-drop reference galleries, interactive prompt chips, and instant example loading.
 
-## Features
+### **Key Features**
 
-- **Multi-Image Support**: Upload one or more images via gallery (e.g., subject + reference for pose/style transfer).
-- **Lazy LoRA Loading**: 7 adapters load on-demand only when selected, minimizing VRAM usage.
-- **Advanced Editing Tasks**:
-  - Photo-to-Anime: Realistic to anime style
-  - Multiple-Angles: Camera rotation/view changes
-  - Any-Pose: Precise pose transfer from reference
-  - Upscaler: High-resolution enhancement
-  - Style-Transfer: Apply artistic style from reference
-  - Light-Migration: Match lighting/color tone
-  - Manga-Tone: Black-and-white manga aesthetic & more.
-- **Rapid Inference**: Flash Attention 3 enabled; 4-step default with bfloat16.
-- **Auto-Resizing**: Preserves aspect ratio up to 1024px max edge (multiples of 8).
-- **Custom Theme**: OrangeRedTheme with clean, responsive layout.
-- **Examples**: 7 curated multi/single-image scenarios.
-- **Queueing**: Up to 30 concurrent jobs.
+* **Lazy-Loaded Adapter Hub:** On-demand downloading and weight-fusing for 19+ pre-configured specialized LoRA adapters (e.g., *Multiple-Angles*, *Photo-to-Anime*, *Light-Migration*, *Upscaler*, *Style-Transfer*, *Pixar-Inspired-3D*, *Studio-DeLight*, and more).
+* **Flash Attention 3 (FA3) Acceleration:** Hooks into `QwenDoubleStreamAttnProcessorFA3` to accelerate attention processing and reduce memory overhead during multi-image cross-attention passes.
+* **Multi-Image Reference Manipulation:** Supports uploading multiple reference images to drive guided edits (e.g., migrating lighting from Image 2 onto Image 1 or applying style transfers across subjects).
+* **Custom Headless-Style UI:** Features a dark-mode terminal layout with client-side JavaScript gallery management, drag-and-drop uploader zones, live toast feedback, and quick suggestion chips.
+* **Automatic Dimension Snapping:** Calculates source image aspect ratios and snaps target dimensions to multiples of 8 (bounded by a 1024px maximum edge) to prevent tensor shape errors during diffusion.
 
-**Note**: This is an experimental Space for the newer Qwen-Image-Edit-2511 model. For stable performance, consider the [2509 version](https://huggingface.co/spaces/prithivMLmods/Qwen-Image-Edit-2509-LoRAs-Fast).
+### **Repository Structure**
 
-## Prerequisites
+```text
+├── examples/
+│   ├── 1.jpg
+│   ├── A.jpeg
+│   ├── B.jpg
+│   ├── CFL.jpg
+│   ├── HRP.jpg
+│   ├── HS1.jpg
+│   ├── HS2.jpg
+│   ├── L1.jpg
+│   ├── L2.jpg
+│   ├── MN.jpg
+│   ├── MT.jpg
+│   ├── NCB.jpg
+│   ├── P1.jpg
+│   ├── P2.jpg
+│   ├── PI.jpg
+│   ├── PP1.jpg
+│   ├── R1.jpg
+│   ├── SL.jpg
+│   ├── ST1.jpg
+│   ├── ST2.jpg
+│   ├── U.jpg
+│   ├── UA.jpeg
+│   ├── URP.jpg
+│   ├── Z1.jpg
+│   ├── Z2.jpg
+│   └── Z3.jpg
+├── qwenimage/
+│   ├── __init__.py
+│   ├── pipeline_qwenimage_edit_plus.py
+│   ├── qwen_fa3_processor.py
+│   └── transformer_qwenimage.py
+├── app.py
+├── LICENSE
+├── pre-requirements.txt
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+└── uv.lock
 
-- Python 3.10 or higher.
-- CUDA-compatible GPU (required for bfloat16 and Flash Attention 3).
-- Stable internet for initial model/LoRA downloads.
+```
 
-## Installation
+### **Installation and Requirements**
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/PRITHIVSAKTHIUR/Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load.git
-   cd Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load
-   ```
+To set up the Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load environment locally, configure your environment according to the specifications below. A modern CUDA-enabled GPU is required.
 
-2. Install dependencies:
-   Create a `requirements.txt` file with the following content, then run:
-   ```
-   pip install -r requirements.txt
-   ```
+* **Python Version:** Minimum Python **3.12** is required; Python **3.14** is recommended for best performance.
+* **PyTorch Version:** `torch==2.11.0` or above is required for optimal system compatibility and Flash Attention 3 execution.
 
-   **requirements.txt content:**
-   ```
-    git+https://github.com/huggingface/accelerate.git
-    git+https://github.com/huggingface/diffusers.git
-    git+https://github.com/huggingface/peft.git
-    transformers==4.57.3
-    huggingface_hub
-    sentencepiece
-    torchvision
-    kernels
-    spaces
-    hf_xet
-    gradio==6.17.3
-    torch==2.11.0
-    numpy
-    av
-   ```
+#### **Running with `uv` (Recommended)**
 
-3. Start the application:
-   ```
-   python app.py
-   ```
-   The demo launches at `http://localhost:7860`.
+`uv` is an ultra-fast Python package and project manager written in Rust. It ensures rapid environment setup and exact dependency synchronization based on `uv.lock`.
 
----
+**Step 1 — Install `uv`**
 
-### **Running with uv (Recommended)**
+* **macOS / Linux:** `curl -LsSf [https://astral.sh/uv/install.sh](https://astral.sh/uv/install.sh) | sh`
+* **Windows:** `powershell -c "irm [https://astral.sh/uv/install.ps1](https://astral.sh/uv/install.ps1) | iex"`
 
-`uv` is an ultra-fast Python package installer and dependency resolver. It isolates execution contexts instantly and securely.
-
-**1. Install `uv`**
-
-* **Linux / macOS:** `curl -LsSf https://astral.sh/uv/install.sh | sh`
-* **Windows (PowerShell):** `powershell -c "irm https://astral.sh/uv/install.ps1 | iex"`
-
-**2. Clone and Synchronize the Workspace**
+**Step 2 — Clone the repository**
 
 ```bash
 git clone https://github.com/PRITHIVSAKTHIUR/Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load.git
 cd Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load
+
+```
+
+**Step 3 — Initialize the project and install dependencies**
+
+```bash
 uv sync
 
 ```
 
-**3. Launch the Web Interface**
+**Step 4 — Run the script**
 
 ```bash
 uv run app.py
@@ -97,58 +97,39 @@ uv run app.py
 
 ---
 
-## Usage
+#### **Standard PIP Installation**
 
-1. **Upload Images**: Use gallery to add one or more images (e.g., person + pose reference).
+**1. Update Package Manager**
+Upgrade your local pip installer:
 
-2. **Select Adapter**: Choose from 7 styles (default: Photo-to-Anime).
+```bash
+pip install pip>=26.1.2
 
-3. **Enter Prompt**: Describe the edit (e.g., "Make the person do the exact same pose").
+```
 
-4. **Configure (Optional)**: Expand "Advanced Settings" for seed, guidance, steps.
+**2. Install Core Dependencies**
+Install the primary deep learning stack, transformer builds, and web client libraries specified in `requirements.txt`:
 
-5. **Edit Image**: Click "Edit Image" to generate output.
+```bash
+pip install -r requirements.txt
 
-### Supported Adapters
+```
 
-| Adapter            | Use Case                                      |
-|--------------------|-----------------------------------------------|
-| Photo-to-Anime    | Realistic to anime conversion                 |
-| Multiple-Angles   | Camera angle/rotation changes                  |
-| Any-Pose          | Precise pose transfer from reference          |
-| Upscaler          | 2K/4K resolution enhancement                  |
-| Style-Transfer    | Apply artistic style from reference           |
-| Light-Migration   | Match lighting and color tone                 |
-| Manga-Tone        | Black-and-white manga aesthetic               |
+### **Usage**
 
-## Examples
+Once the FastAPI web client launches, open your browser to the local address output in your terminal (typically `[http://127.0.0.1:7860/](http://127.0.0.1:7860/)`).
 
-| Input Images                  | Prompt Example                                                                                             | Adapter             |
-|-------------------------------|------------------------------------------------------------------------------------------------------------|---------------------|
-| examples/B.jpg                | "Transform into anime."                                                                                   | Photo-to-Anime     |
-| examples/A.jpeg               | "Rotate the camera 45 degrees to the right."                                                              | Multiple-Angles    |
-| examples/U.jpg                | "Upscale this picture to 4K resolution."                                                                  | Upscaler           |
-| examples/MT.jpg               | "Paint with manga tone."                                                                                  | Manga-Tone         |
-| examples/ST1.jpg + examples/ST2.jpg | "Convert Image 1 to the style of Image 2."                                                           | Style-Transfer     |
-| examples/L1.jpg + examples/L2.jpg | "Relight Image 1 based on the lighting and color tone of Image 2."                                       | Light-Migration    |
-| examples/P1.jpg + examples/P2.jpg | "Make the person in image 1 do the exact same pose of the person in image 2."                            | Any-Pose           |
+1. **Upload Images:** Drop one or more images into the upload area.
+* For single-subject edits (e.g., *"Transform into anime"*), upload 1 image.
+* For reference-guided edits (e.g., *"Apply the lighting from image 2 to image 1"*), upload the target image first followed by the reference style/lighting image.
 
-## Troubleshooting
 
-- **Adapter Loading**: First selection downloads LoRA; monitor console.
-- **OOM**: Reduce steps/resolution; clear cache with `torch.cuda.empty_cache()`.
-- **Flash Attention Fails**: Fallback to default; requires compatible CUDA.
-- **Gallery Input**: Supports filepaths, tuples, or PIL objects.
-- **No Output**: Ensure at least one valid image and descriptive prompt.
+2. **Select Style / LoRA:** Choose the desired editing adapter from the **Editing Style / LoRA** dropdown menu. The adapter weights will be downloaded lazily and fused on first execution.
+3. **Set Prompt:** Type your edit instructions or click one of the **Quick Prompts** chips to auto-fill a directive.
+4. **Execute:** Click **Edit Image**. The web interface will show an active loader bar while the GPU processes the diffusion steps, returning the final image upon completion.
 
-## Contributing
+### **Links and Source**
 
-Contributions welcome! Add new adapters to `ADAPTER_SPECS`, improve multi-image handling, or enhance prompts.
-
-Repository: [https://github.com/PRITHIVSAKTHIUR/Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load.git](https://github.com/PRITHIVSAKTHIUR/Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load.git)
-
-## License
-
-Apache License 2.0. See [LICENSE](LICENSE) for details.
-
-Built by [Prithiv Sakthi](https://github.com/PRITHIVSAKTHIUR). Report issues via the [repository](https://github.com/PRITHIVSAKTHIUR/Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load/issues).
+* **GitHub Repository:** [https://github.com/PRITHIVSAKTHIUR/Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load.git](https://github.com/PRITHIVSAKTHIUR/Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load.git)
+* **Hugging Face Live Space:** [https://huggingface.co/spaces/prithivMLmods/Qwen-Image-Edit-2511-LoRAs-Fast](https://huggingface.co/spaces/prithivMLmods/Qwen-Image-Edit-2511-LoRAs-Fast)
+* **License:** [Apache License 2.0](https://github.com/PRITHIVSAKTHIUR/Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load/blob/main/LICENSE)
