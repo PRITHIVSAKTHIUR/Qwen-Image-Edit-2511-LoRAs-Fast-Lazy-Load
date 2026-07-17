@@ -1,8 +1,10 @@
-# **Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load**
+# **[Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load](https://huggingface.co/spaces/prithivMLmods/Qwen-Image-Edit-2511-LoRAs-Fast)**
 
 Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load is an experimental, high-performance image editing and style-transfer platform built upon the `Qwen/Qwen-Image-Edit-2511` base pipeline and an optimized transformer backbone (`prithivMLmods/Qwen-Image-Edit-Rapid-AIO-V19`). The suite implements Flash Attention 3 (`QwenDoubleStreamAttnProcessorFA3`) to achieve low VRAM consumption and rapid 4-step image manipulation.
 
 Featuring a **Lazy Loading** architecture for LoRA adapters, the application dynamically fetches and fuses adapters on demand—including Multiple Angles, Photo-to-Anime, Light Migration, Upscaler, and Pixar 3D—only when requested. The backend is coupled with a custom dark-themed Gradio web application with drag-and-drop reference galleries, interactive prompt chips, and instant example loading.
+
+<img width="1714" height="1596" alt="image" src="https://github.com/user-attachments/assets/7c665c83-d5a0-492a-9ede-074382c6c46a" />
 
 ### **Key Features**
 
