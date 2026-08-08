@@ -4,6 +4,8 @@ Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load is an experimental, high-performance i
 
 Using a **Lazy Loading** design for LoRA adapters, the system dynamically downloads and fuses task-specific adapters on demand—including Multiple Angles, Photo-to-Anime, Anime-V2, Light Migration, Upscaler, Style Transfer, Manga Tone, Anything2Real, Polaroid Photo, Unblur Anything, Midnight Noir, Hyper-Realistic Portrait, Ultra-Realistic Portrait, Pixar-Inspired 3D, Noir Comic Book, Any Light, Studio DeLight, and Cinematic FlatLog. The web workspace is served via a custom, single-page web app built with a FastAPI backend server (`gradio.Server`) and a dark-mode frontend interface featuring a dual-view canvas, A/B comparison slider, history filmstrip, and interactive prompt suggestions.
 
+<img width="1919" height="847" alt="image (1)" src="https://github.com/user-attachments/assets/16525234-b2c6-4dc4-afba-b414872e7e60" />
+
 ### **Key Features**
 
 * **Lazy-Loaded Adapter Registry:** On-demand downloading and weight-fusing for 19+ specialized LoRA adapters (e.g., *Multiple-Angles*, *Photo-to-Anime*, *Anime-V2*, *Light-Migration*, *Upscaler*, *Style-Transfer*, *Manga-Tone*, *Anything2Real*, *Polaroid-Photo*, *Unblur-Anything*, *Pixar-Inspired-3D*, *Studio-DeLight*, and *Cinematic-FlatLog*).
