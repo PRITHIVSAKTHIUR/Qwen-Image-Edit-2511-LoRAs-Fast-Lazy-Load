@@ -11,6 +11,7 @@ import base64
 import json
 from io import BytesIO
 from PIL import Image
+import ncii_guard
 
 MAX_SEED = np.iinfo(np.int32).max
 LANCZOS = getattr(Image, "Resampling", Image).LANCZOS
@@ -152,6 +153,37 @@ ADAPTER_SPECS = {
 LOADED_ADAPTERS: set = set()
 ADAPTER_NAMES = list(ADAPTER_SPECS.keys())
 
+# ── NCII safety guard (pure CPU subprocess, never touches spaces/CUDA) ──────
+NCII_UNSAFE_LABEL = "ncii"
+NCII_THRESHOLD = 0.5
+NCII_BLOCK_MESSAGE = "This prompt was flagged by the NCII content filter and was not processed. Please try again with a different prompt."
+
+print("Starting NCII safety guard subprocess (CPU-only)…")
+try:
+    ncii_guard.start()
+    print("NCII guard subprocess ready.")
+except Exception as e:
+    print(f"Warning: Could not start NCII guard subprocess: {e}")
+
+
+def check_ncii_safety(prompt_text):
+    """Ask the CPU-side subprocess. No GPU is requested by this call.
+
+    Returns: (is_unsafe: bool, label: str, score: float)
+    """
+    if not prompt_text or not prompt_text.strip():
+        return False, "unknown", 0.0
+    try:
+        out = ncii_guard.classify(prompt_text.strip())
+        label = str(out.get("label", "")).lower()
+        score = float(out.get("score", 0.0))
+        is_unsafe = (label == NCII_UNSAFE_LABEL) and (score >= NCII_THRESHOLD)
+        return is_unsafe, label, score
+    except Exception as e:
+        print(f"NCII guard inference error: {e}")
+        return False, "unknown", 0.0
+
+
 EXAMPLES_CONFIG = [
     {"images": ["examples/B.jpg"],                          "prompt": "Transform into anime.",                                                                                           "lora": "Photo-to-Anime"},
     {"images": ["examples/HRP.jpg"],                        "prompt": "Transform into a hyper-realistic face portrait.",                                                                 "lora": "Hyper-Realistic-Portrait"},
@@ -272,6 +304,22 @@ def update_dimensions_on_upload(image):
 app = Server(title="Qwen-Image-Edit-2511-LoRAs-Fast")
 
 
+@app.api(name="check_safety", queue=False)
+def check_safety(prompt: str) -> dict:
+    """Pure-CPU safety check. Runs BEFORE any @spaces.GPU resource is requested.
+
+    Returns:
+        {"status": "ok"}                       — prompt is safe, proceed
+        {"status": "blocked", "message": ...}  — NCII detected
+    """
+    if not prompt or not prompt.strip():
+        return {"status": "ok"}
+    is_unsafe, label, score = check_ncii_safety(prompt)
+    if is_unsafe:
+        return {"status": "blocked", "message": NCII_BLOCK_MESSAGE}
+    return {"status": "ok", "label": label, "score": score}
+
+
 @app.mcp.tool(name="edit_image")
 @app.api(name="edit_image")
 @spaces.GPU(size="xlarge")
@@ -286,7 +334,8 @@ def infer(
 ) -> dict:
     """Edit one or more images with Qwen-Image-Edit-2511 + a lazily-loaded LoRA.
 
-    Returns {"image": <base64 PNG data URL>, "seed": <seed used>}.
+    The frontend is expected to have already called /check_safety and
+    only submit here when safe. This is a defense-in-depth re-check.
     """
     gc.collect()
     torch.cuda.empty_cache()
@@ -296,6 +345,13 @@ def infer(
         raise gr.Error("Please upload at least one image to edit.")
     if not prompt or prompt.strip() == "":
         raise gr.Error("Please enter an edit prompt.")
+
+    # ── Defense-in-depth NCII re-check inside the GPU worker ──
+    is_unsafe, _, _ = check_ncii_safety(prompt)
+    if is_unsafe:
+        gc.collect()
+        torch.cuda.empty_cache()
+        return {"image": "", "seed": seed, "status": "blocked", "message": NCII_BLOCK_MESSAGE}
 
     spec = ADAPTER_SPECS.get(lora_adapter)
     if not spec:
@@ -335,7 +391,7 @@ def infer(
             generator=generator,
             true_cfg_scale=guidance_scale,
         ).images[0]
-        return {"image": pil_to_b64_png(result_image), "seed": seed}
+        return {"image": pil_to_b64_png(result_image), "seed": seed, "status": "success"}
     except Exception as e:
         raise e
     finally:

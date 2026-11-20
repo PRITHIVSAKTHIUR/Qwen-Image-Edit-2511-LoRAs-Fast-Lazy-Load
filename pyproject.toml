@@ -4,18 +4,18 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = 'PRITHIVMLMODS\prith', email = "prithivsakthi676@gmail.com" }
+    { name = "Prithiv Sakthi U R", email = "prithivsakthi676@gmail.com" }
 ]
 requires-python = ">=3.14"
 dependencies = [
     "accelerate==1.14.0",
     "av==17.1.0",
     "diffusers==0.39.0",
-    "gradio==6.22.0",
+    "gradio==6.30.0",
     "huggingface-hub==1.24.0",
-    "kernels==0.16.0",
+    "kernels>=0.16.0",
     "peft==0.19.1",
-    "spaces==0.51.1",
+    "spaces>=0.51.3",
     "torch==2.11.0",
     "torchvision==0.26.0",
     "transformers==5.14.1",
@@ -25,5 +25,5 @@ dependencies = [
 qwen-image-edit-2511-loras-fast = "qwen_image_edit_2511_loras_fast:main"
 
 [build-system]
-requires = ["uv_build>=0.12.1,<0.13.0"]
+requires = ["uv_build>=0.12.13,<0.13.0"]
 build-backend = "uv_build"

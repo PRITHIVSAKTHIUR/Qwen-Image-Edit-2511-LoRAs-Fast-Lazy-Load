@@ -1317,6 +1317,21 @@ function setRunningUI(on) {
     cancelBtn.style.display = on ? 'flex' : 'none';
 }
 
+/* Pre-flight: ask the pure-CPU endpoint whether the prompt is safe.
+   This happens BEFORE submitting to /edit_image, so no GPU resource
+   is ever queued for an unsafe prompt. */
+async function checkPromptSafety(prompt) {
+    if (!client) return { status: 'ok' };
+    try {
+        const result = await client.predict('/check_safety', { prompt });
+        const data = result.data && result.data[0];
+        return data || { status: 'ok' };
+    } catch (e) {
+        console.warn('Safety check failed, proceeding optimistically:', e);
+        return { status: 'ok' };
+    }
+}
+
 async function runEdit() {
     if (running) return;
     if (!client) { showToast('Backend not connected', 'error'); return; }
@@ -1324,10 +1339,23 @@ async function runEdit() {
 
     setRunningUI(true);
     setViewMode('result');
-    showLoader('Submitting to queue…');
+    showLoader('Checking prompt safety…');
 
-    const beforeB64 = images[0] ? images[0].b64 : null;
     const usedPrompt = promptInput.value;
+
+    /* ── Step 1: CPU-only safety gate (no GPU requested yet) ── */
+    const safety = await checkPromptSafety(usedPrompt);
+    if (safety && safety.status === 'blocked') {
+        hideLoader('Blocked', 'error');
+        showToast(safety.message || 'Request blocked by safety guard', 'warning');
+        flashPromptError();
+        setRunningUI(false);
+        return;
+    }
+
+    /* ── Step 2: Only now do we ask the GPU worker to run ── */
+    showLoader('Submitting to queue…');
+    const beforeB64 = images[0] ? images[0].b64 : null;
     const usedLora = loraSelect.value;
 
     const payload = {
@@ -1379,6 +1407,11 @@ async function runEdit() {
                     }
                     hideLoader('Done', 'done');
                     showToast('Image edited successfully', 'info');
+                } else if (out && out.status === 'blocked') {
+                    /* Defense-in-depth re-check inside the GPU worker triggered */
+                    hideLoader('Blocked', 'error');
+                    showToast(out.message || 'Request blocked by safety guard', 'warning');
+                    flashPromptError();
                 } else {
                     hideLoader('Done', 'done');
                 }
