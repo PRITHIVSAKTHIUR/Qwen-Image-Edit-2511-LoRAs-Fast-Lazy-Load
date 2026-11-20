@@ -2,21 +2,24 @@
 
 Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load is an experimental, high-performance image editing and style-transfer platform built on top of the `Qwen/Qwen-Image-Edit-2511` base model and an optimized transformer architecture (`prithivMLmods/Qwen-Image-Edit-Rapid-AIO-V19`). The application integrates Flash Attention 3 (`QwenDoubleStreamAttnProcessorFA3`) to achieve low VRAM footprints and accelerated 4-step image manipulation.
 
-Using a **Lazy Loading** design for LoRA adapters, the system dynamically downloads and fuses task-specific adapters on demand—including Multiple Angles, Photo-to-Anime, Anime-V2, Light Migration, Upscaler, Style Transfer, Manga Tone, Anything2Real, Polaroid Photo, Unblur Anything, Midnight Noir, Hyper-Realistic Portrait, Ultra-Realistic Portrait, Pixar-Inspired 3D, Noir Comic Book, Any Light, Studio DeLight, and Cinematic FlatLog. The web workspace is served via a custom, single-page web app built with a FastAPI backend server (`gradio.Server`) and a dark-mode frontend interface featuring a dual-view canvas, A/B comparison slider, history filmstrip, and interactive prompt suggestions.
+Using a **Lazy Loading** design for LoRA adapters, the system dynamically downloads and fuses task-specific adapters on demand—including Multiple Angles, Photo-to-Anime, Anime-V2, Light Migration, Upscaler, Style Transfer, Manga Tone, Anything2Real, Polaroid Photo, Unblur Anything, Midnight Noir, Hyper-Realistic Portrait, Ultra-Realistic Portrait, Pixar-Inspired 3D, Noir Comic Book, Any Light, Studio DeLight, and Cinematic FlatLog. Every edit prompt additionally passes through a **CPU-only NCII safety guard** before any GPU work is queued. The web workspace is served via a custom, single-page web app built with a FastAPI backend server (`gradio.Server`) and a dark-mode frontend interface featuring a dual-view canvas, A/B comparison slider, history filmstrip, and interactive prompt suggestions.
 
 <img width="1919" height="847" alt="image (1)" src="https://github.com/user-attachments/assets/16525234-b2c6-4dc4-afba-b414872e7e60" />
 
 ### **Key Features**
 
-* **Lazy-Loaded Adapter Registry:** On-demand downloading and weight-fusing for 19+ specialized LoRA adapters (e.g., *Multiple-Angles*, *Photo-to-Anime*, *Anime-V2*, *Light-Migration*, *Upscaler*, *Style-Transfer*, *Manga-Tone*, *Anything2Real*, *Polaroid-Photo*, *Unblur-Anything*, *Pixar-Inspired-3D*, *Studio-DeLight*, and *Cinematic-FlatLog*).
+* **Lazy-Loaded Adapter Registry:** On-demand downloading and weight-fusing for 19 specialized LoRA adapters (e.g., *Multiple-Angles*, *Photo-to-Anime*, *Anime-V2*, *Light-Migration*, *Upscaler*, *Style-Transfer*, *Manga-Tone*, *Anything2Real*, *Polaroid-Photo*, *Unblur-Anything*, *Pixar-Inspired-3D*, *Studio-DeLight*, and *Cinematic-FlatLog*).
 * **Flash Attention 3 (FA3) Acceleration:** Hooks natively into the `QwenDoubleStreamAttnProcessorFA3` processor layer to accelerate cross-attention inference phases while reducing active GPU memory consumption.
 * **Text-Guided Image Editing:** Offers camera angle rotations, shadow removal, uniform studio relighting, skin detail refinement, scene propagation, and 4K upscaling.
 * **Studio SPA Interface:** An interactive single-page application built with modern vanilla web components—featuring an A/B image comparison slider, history filmstrip, quick prompt chips, and drag-and-drop file support.
 * **Smart Aspect Ratio Snapping:** Automatically resizes uploaded images to stay within 1024px while snapping width and height to multiples of 8 to prevent shape mismatch errors during inference.
+* **NCII Safety Guard:** Every edit prompt is screened by a 270M CPU-only text classifier in an isolated subprocess. A `/check_safety` pre-flight runs before any GPU request is queued, with a defense-in-depth re-check inside the GPU worker.
 
 ### **Repository Structure**
 
 ```text
+├── .gitignore
+├── .python-version
 ├── examples/
 │   ├── 1.jpg
 │   ├── A.jpeg
@@ -49,9 +52,13 @@ Using a **Lazy Loading** design for LoRA adapters, the system dynamically downlo
 │   ├── pipeline_qwenimage_edit_plus.py
 │   ├── qwen_fa3_processor.py
 │   └── transformer_qwenimage.py
+├── src/
+│   └── qwen_image_edit_2511_loras_fast/
+│       └── __init__.py
 ├── app.py
 ├── index.html
 ├── LICENSE
+├── ncii_guard.py
 ├── pre-requirements.txt
 ├── pyproject.toml
 ├── README.md
@@ -63,7 +70,7 @@ Using a **Lazy Loading** design for LoRA adapters, the system dynamically downlo
 
 To set up the Qwen-Image-Edit-2511-LoRAs-Fast-Lazy-Load environment locally, configure your system according to the specifications below. A modern CUDA-enabled GPU is required.
 
-* **Python Version:** Minimum Python **3.12** is needed; Python **3.12** or **3.14** is recommended.
+* **Python Version:** Python **3.14** is required (`requires-python = ">=3.14"`); the bundled `.python-version` pins **3.14**.
 * **PyTorch Version:** `torch==2.11.0` or above is required for better compatibility.
 * **CUDA Version:** CUDA **13.0** is recommended (`--extra-index-url https://download.pytorch.org/whl/cu130`), matching the environment used on the live Hugging Face demo.
 
@@ -101,7 +108,7 @@ uv run app.py
 Upgrade your local package manager:
 
 ```bash
-pip install pip>=26.1.2
+pip install "pip>=26.2.1"
 
 ```
 
@@ -123,12 +130,22 @@ transformers==5.14.1
 accelerate==1.14.0
 diffusers==0.39.0
 peft==0.19.1
-gradio==6.22.0
+gradio==6.30.0
 av==17.1.0
-spaces==0.51.1
+spaces>=0.51.3
 huggingface-hub==1.24.0
-kernels==0.16.0
+kernels>=0.16.0
 ```
+
+### **Safety Guard**
+
+Prompt safety is enforced in two stages so that unsafe requests never consume GPU time:
+
+* **Isolated CPU classifier:** [`ncii_guard.py`](ncii_guard.py) hosts the [`hfmlsoc/ncii-guard-v02`](https://huggingface.co/hfmlsoc/ncii-guard-v02) text classifier in a plain subprocess. The child interpreter never imports `spaces` or touches CUDA, which keeps the GPU worker's initialization state intact. The parent talks to it over stdin/stdout using one JSON object per line.
+* **Pre-flight endpoint:** `/check_safety` (`queue=False`) evaluates the prompt on CPU and returns `{"status": "ok"}` or `{"status": "blocked", "message": ...}`. The frontend calls it before `/edit_image`, so a blocked prompt never enters the GPU queue.
+* **Defense-in-depth re-check:** `edit_image` re-runs the same check inside the GPU worker and returns a blocked payload without running inference.
+* **Threshold:** a prompt is blocked when the classifier label is `ncii` with a score of at least `0.5`.
+* **Fail-open:** if the guard subprocess is unavailable, requests proceed normally so the Space stays usable.
 
 ### **Usage**
 
@@ -136,7 +153,7 @@ Once the web server initializes, open your browser to the local address output i
 
 1. **Upload Asset:** Drag and drop an image into the main canvas workspace, paste an image from your clipboard, or click the upload icon in the left rail.
 2. **Select Style / LoRA:** Choose your target editing task from the **Style / LoRA** dropdown menu in the right inspector panel. The adapter weights will download lazily on first use.
-3. **Refine Instructions:** Type your instructions inside the prompt field, or click one of the **Quick Prompts** chips to instantly fill it. Press ⌘/Ctrl + Enter or click **Edit Image**.
+3. **Refine Instructions:** Type your instructions inside the prompt field, or click one of the **Quick Prompts** chips to instantly fill it. Press ⌘/Ctrl + Enter or click **Edit Image**. The prompt is screened on CPU by the safety guard before the GPU job is queued.
 4. **Compare & Chain:** Use the **Compare** tool on the left rail to view an A/B slider of the before and after states. Click **Use as Input** to chain multiple edits sequentially.
 
 ### **Links and Source**
